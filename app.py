@@ -1,21 +1,22 @@
 from flask import Flask, render_template, request
 from langdetect import detect
 from googletrans import Translator, LANGUAGES
+import asyncio
 
 app = Flask(__name__)
 
-
-def detect_and_translate(text, target_lang):
+# Create an async function to handle the translation
+async def detect_and_translate(text, target_lang):
     # Detect language
     result_lang = detect(text)
 
-    # Translate language
+    # Translate language asynchronously
     translator = Translator()
-    translate_text = translator.translate(text, dest=target_lang).text
+    translated = await translator.translate(text, dest=target_lang)
 
-    return result_lang, translate_text
+    return result_lang, translated.text
 
-
+# Flask route that synchronously calls the async function
 @app.route('/')
 def index():
     return render_template('index.html', languages=LANGUAGES)
@@ -28,7 +29,9 @@ def trans():
     if request.method == 'POST':
         text = request.form['text']
         target_lang = request.form['target_lang']
-        detected_lang, translation = detect_and_translate(text, target_lang)
+
+        # Use asyncio.run() to run the async function
+        detected_lang, translation = asyncio.run(detect_and_translate(text, target_lang))
 
     return render_template('index.html', translation=translation, detected_lang=detected_lang, languages=LANGUAGES)
 
